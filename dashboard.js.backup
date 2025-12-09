@@ -1,0 +1,321 @@
+// ---- CONFIG ----
+const BASE_URL = "https://fir-app-6aa3b-default-rtdb.asia-southeast1.firebasedatabase.app";
+
+// ---- STATE ----
+let currentUser = null;
+let currentDate = null;
+let activities = {}; // {id: {title, category, minutes}}
+let editingId = null;
+let chart = null;
+let isInitialized = false; // Flag to prevent multiple initializations
+
+// ---- DOM ----
+const userEmailSpan = document.getElementById("userEmail");
+const logoutBtn = document.getElementById("logoutBtn");
+const dateInput = document.getElementById("dateInput");
+const activityForm = document.getElementById("activityForm");
+const saveBtn = document.getElementById("saveBtn");
+const nameInput = document.getElementById("activityName");
+const categoryInput = document.getElementById("activityCategory");
+const minutesInput = document.getElementById("activityMinutes");
+const totalSpan = document.getElementById("totalMinutes");
+const remainingSpan = document.getElementById("remainingMinutes");
+const analyseBtn = document.getElementById("analyseBtn");
+const activitiesBody = document.getElementById("activitiesBody");
+const noDataState = document.getElementById("noDataState");
+const dashboardContent = document.getElementById("dashboardContent");
+const dashTotalHours = document.getElementById("dashTotalHours");
+const dashActivityCount = document.getElementById("dashActivityCount");
+const chartCanvas = document.getElementById("categoryChart");
+
+// ---- AUTH CHECK (Firebase Authentication) ----
+auth.onAuthStateChanged((user) => {
+  if (!user) {
+    // User is not logged in, redirect to login page
+    window.location.href = "index.html";
+    return;
+  }
+  
+  // User is authenticated
+  currentUser = user;
+  if (userEmailSpan) {
+    userEmailSpan.textContent = user.email;
+  }
+  
+  // Initialize the app only once
+  if (!isInitialized) {
+    initializeApp();
+    isInitialized = true;
+  }
+});
+
+// ---- HELPERS ----
+function dayUrl(date) {
+ return `${BASE_URL}/${date}.json`;
+}
+function activityUrl(date, id) {
+ return `${BASE_URL}/${date}/${id}.json`;
+}
+function computeTotals() {
+ let totalMinutes = 0;
+ let categoryTotals = {};
+ const ids = Object.keys(activities);
+ ids.forEach((id) => {
+   const act = activities[id];
+   const m = Number(act.minutes) || 0;
+   totalMinutes += m;
+   const cat = act.category || "Uncategorized";
+   categoryTotals[cat] = (categoryTotals[cat] || 0) + m;
+ });
+ return {
+   totalMinutes,
+   categoryTotals,
+   activityCount: ids.length,
+ };
+}
+function updateSummaryUI() {
+ const { totalMinutes } = computeTotals();
+ totalSpan.textContent = totalMinutes;
+ remainingSpan.textContent = 1440 - totalMinutes;
+ // analyse allowed for any valid time > 0
+ analyseBtn.disabled = totalMinutes === 0;
+}
+// ---- FETCH & RENDER ----
+function loadDay(date) {
+ if (!date) return;
+ fetch(dayUrl(date))
+   .then((res) => res.json())
+   .then((data) => {
+     activities = data || {};
+     renderActivities();
+     updateSummaryUI();
+     resetDashboard();
+   })
+   .catch((err) => {
+     console.error("Error loading day:", err);
+   });
+}
+function renderActivities() {
+ activitiesBody.innerHTML = "";
+ const ids = Object.keys(activities);
+ if (ids.length === 0) {
+   const empty = document.createElement("div");
+   empty.className = "table-row";
+   empty.innerHTML =
+     "<span>No activities yet</span><span></span><span></span><span></span>";
+   activitiesBody.appendChild(empty);
+   return;
+ }
+ ids.forEach((id) => {
+   const act = activities[id];
+   const row = document.createElement("div");
+   row.className = "table-row";
+   const titleSpan = document.createElement("span");
+   titleSpan.textContent = act.title;
+   const catSpan = document.createElement("span");
+   catSpan.textContent = act.category || "-";
+   const minSpan = document.createElement("span");
+   minSpan.textContent = act.minutes;
+   const actions = document.createElement("span");
+   const editBtn = document.createElement("button");
+   editBtn.className = "action-btn action-edit";
+   editBtn.textContent = "Edit";
+   editBtn.addEventListener("click", () => startEdit(id));
+   const delBtn = document.createElement("button");
+   delBtn.className = "action-btn action-delete";
+   delBtn.textContent = "Delete";
+   delBtn.addEventListener("click", () => deleteActivity(id));
+   actions.append(editBtn, " ", delBtn);
+   row.append(titleSpan, catSpan, minSpan, actions);
+   activitiesBody.appendChild(row);
+ });
+}
+// ---- ADD / EDIT / DELETE ----
+function startEdit(id) {
+ const act = activities[id];
+ if (!act) return;
+ editingId = id;
+ nameInput.value = act.title;
+ categoryInput.value = act.category;
+ minutesInput.value = act.minutes;
+ saveBtn.textContent = "Save Changes";
+ nameInput.focus();
+}
+function deleteActivity(id) {
+ if (!confirm("Delete this activity?")) return;
+ fetch(activityUrl(currentDate, id), { method: "DELETE" })
+   .then(() => {
+     if (editingId === id) {
+       editingId = null;
+       saveBtn.textContent = "Add Activity";
+       activityForm.reset();
+     }
+     loadDay(currentDate);
+   })
+   .catch((err) => console.error("Delete error:", err));
+}
+// ---- ANALYTICS ----
+analyseBtn.addEventListener("click", () => {
+ const { totalMinutes, categoryTotals, activityCount } = computeTotals();
+ if (activityCount === 0) {
+   showNoData();
+   return;
+ }
+ const hours = (totalMinutes / 60).toFixed(1);
+ dashTotalHours.textContent = hours;
+ dashActivityCount.textContent = activityCount;
+ const labels = Object.keys(categoryTotals);
+ const data = Object.values(categoryTotals);
+ if (chart) chart.destroy();
+ chart = new Chart(chartCanvas, {
+   type: "pie",
+   data: {
+     labels,
+     datasets: [
+       {
+         data,
+         backgroundColor: [
+           "#6366f1",
+           "#22c55e",
+           "#f97316",
+           "#f97373",
+           "#a855f7",
+           "#06b6d4",
+         ],
+       },
+     ],
+   },
+   options: {
+     plugins: {
+       legend: { position: "bottom", labels: { color: "#e5e7eb" } },
+     },
+   },
+ });
+ showDashboard();
+});
+function showDashboard() {
+ noDataState.style.display = "none";
+ dashboardContent.classList.remove("hidden");
+}
+function showNoData() {
+ dashboardContent.classList.add("hidden");
+ noDataState.style.display = "block";
+}
+function resetDashboard() {
+ const { activityCount } = computeTotals();
+ if (activityCount === 0) {
+   showNoData();
+ } else {
+   // keep previous analytics until user clicks Analyse again
+ }
+}
+// ---- DATE CHANGE ----
+dateInput.addEventListener("change", (e) => {
+ currentDate = e.target.value;
+ editingId = null;
+ saveBtn.textContent = "Add Activity";
+ activityForm.reset();
+ if (currentDate) {
+   loadDay(currentDate);
+ } else {
+   activities = {};
+   renderActivities();
+   updateSummaryUI();
+   resetDashboard();
+ }
+});
+
+// ---- INITIALIZATION FUNCTION ----
+function initializeApp() {
+  console.log("Initializing app for user:", currentUser.email);
+  
+  // Register logout handler
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", async () => {
+      console.log("Logout button clicked");
+      try {
+        await auth.signOut();
+        console.log("Signed out successfully");
+      } catch (error) {
+        console.error("Logout error:", error);
+        alert("Error logging out. Please try again.");
+      }
+    });
+  }
+  
+  // Register form submission handler
+  if (activityForm) {
+    activityForm.addEventListener("submit", handleFormSubmit);
+  }
+  
+  // Register date change handler
+  if (dateInput) {
+    dateInput.addEventListener("change", handleDateChange);
+  }
+  
+  // Auto-load data if date is already selected
+  if (dateInput && dateInput.value) {
+    currentDate = dateInput.value;
+    loadDay(currentDate);
+  }
+  
+  console.log("App initialized successfully");
+}
+
+// ---- FORM SUBMISSION HANDLER ----
+function handleFormSubmit(e) {
+  e.preventDefault();
+  if (!currentDate) {
+ showDashboard();
+});
+function showDashboard() {
+ noDataState.style.display = "none";
+ dashboardContent.classList.remove("hidden");
+}
+function showNoData() {
+ dashboardContent.classList.add("hidden");
+ noDataState.style.display = "block";
+}
+function resetDashboard() {
+ const { activityCount } = computeTotals();
+ if (activityCount === 0) {
+   showNoData();
+ } else {
+   // keep previous analytics until user clicks Analyse again
+ }
+}
+
+// Form submission and date change handlers are registered in initializeApp()     activityForm.reset();
+        loadDay(currentDate);
+      })
+      .catch((err) => console.error("Update error:", err));
+  } else {
+    // ADD
+    fetch(dayUrl(currentDate), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then(() => {
+        activityForm.reset();
+        loadDay(currentDate);
+      })
+      .catch((err) => console.error("Add error:", err));
+  }
+}
+
+// ---- DATE CHANGE HANDLER ----
+function handleDateChange(e) {
+  currentDate = e.target.value;
+  editingId = null;
+  saveBtn.textContent = "Add Activity";
+  activityForm.reset();
+  if (currentDate) {
+    loadDay(currentDate);
+  } else {
+    activities = {};
+    renderActivities();
+    updateSummaryUI();
+    resetDashboard();
+  }
+}

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Time Tracker - Dashboard</title>
+<link rel="stylesheet" href="style.css" />
+<!-- Chart.js for analytics -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="app-body">
+<div class="app-wrapper">
+<header class="app-header">
+<h1 class="logo">AI Time Tracker</h1>
+<div class="header-actions">
+<span id="userEmail" class="user-email"></span>
+<button id="logoutBtn" class="ghost-btn">Logout</button>
+</div>
+</header>
+<main class="main-layout">
+<!-- LEFT: Activity logging -->
+<section class="card left-panel">
+<h2>Log Your Day</h2>
+<div class="form-row">
+<label class="date-label">
+           Date
+<input type="date" id="dateInput" />
+</label>
+<div class="time-summary">
+<div>Total: <span id="totalMinutes">0</span> / 1440 min</div>
+<div>Remaining: <span id="remainingMinutes">1440</span> min</div>
+</div>
+</div>
+<form id="activityForm" class="form-grid">
+<label>
+           Activity name
+<input
+             type="text"
+             id="activityName"
+             placeholder="Deep work, gym, sleep..."
+             required
+           />
+</label>
+<label>
+           Category
+<input
+             type="text"
+             id="activityCategory"
+             placeholder="Work, Sleep, Exercise..."
+             required
+           />
+</label>
+<label>
+           Minutes
+<input
+             type="number"
+             id="activityMinutes"
+             min="1"
+             max="1440"
+             required
+           />
+</label>
+<button type="submit" class="primary-btn" id="saveBtn">
+           Add Activity
+</button>
+</form>
+<button id="analyseBtn" class="secondary-btn" disabled>
+         Analyse this day
+</button>
+<h3 class="section-title">Activities</h3>
+<div class="table">
+<div class="table-header">
+<span>Activity</span>
+<span>Category</span>
+<span>Minutes</span>
+<span>Actions</span>
+</div>
+<div id="activitiesBody"></div>
+</div>
+</section>
+<!-- RIGHT: Analytics -->
+<section class="card right-panel">
+<h2>Daily Analytics</h2>
+<div id="noDataState" class="empty-state">
+<div class="emoji">📊</div>
+<h3>No data available</h3>
+<p>
+           Pick a date and start logging your day to unlock insights and charts.
+</p>
+</div>
+<div id="dashboardContent" class="dashboard hidden">
+<div class="stats-grid">
+<div class="stat-card">
+<h4>Total time</h4>
+<p><span id="dashTotalHours">0</span> hours</p>
+</div>
+<div class="stat-card">
+<h4>Activities</h4>
+<p><span id="dashActivityCount">0</span> logged</p>
+</div>
+</div>
+<h3 class="section-title">Time by category</h3>
+<canvas id="categoryChart"></canvas>
+</div>
+</section>
+</main>
+<footer class="app-footer">
+<small>Built with Firebase Realtime Database + fetch()</small>
+</footer>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="dashboard.js"></script>
+</body>
+</html>

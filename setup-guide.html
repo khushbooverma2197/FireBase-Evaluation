@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Auth Setup Guide</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #555;
+            margin-top: 30px;
+        }
+        .step {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #667eea;
+            border-radius: 5px;
+        }
+        .important {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .success {
+            color: #22c55e;
+            font-weight: bold;
+        }
+        ul {
+            margin-left: 20px;
+        }
+        li {
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Quick Setup Guide - Firebase Authentication</h1>
+        
+        <div class="important">
+            <strong>⚠️ IMPORTANT:</strong> You must configure Firebase Authentication before the app will work properly!
+        </div>
+
+        <h2>📝 Step-by-Step Setup (5 minutes)</h2>
+
+        <div class="step">
+            <h3>Step 1: Go to Firebase Console</h3>
+            <p>Visit: <a href="https://console.firebase.google.com/" target="_blank">https://console.firebase.google.com/</a></p>
+            <p>Open your project: <code>fir-app-6aa3b</code></p>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Enable Authentication</h3>
+            <ul>
+                <li>Click <strong>Build</strong> → <strong>Authentication</strong></li>
+                <li>Click <strong>Get Started</strong></li>
+                <li>Go to <strong>Sign-in method</strong> tab</li>
+                <li>Enable <strong>Email/Password</strong> ✅</li>
+                <li>Enable <strong>Google</strong> ✅ (optional but recommended)</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <h3>Step 3: Get Your Firebase Config</h3>
+            <ul>
+                <li>Click the ⚙️ gear icon → <strong>Project settings</strong></li>
+                <li>Scroll to <strong>Your apps</strong> section</li>
+                <li>Click on your web app (or create one if needed)</li>
+                <li>Copy the <code>firebaseConfig</code> object</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <h3>Step 4: Update firebase-config.js</h3>
+            <p>Open the file <code>firebase-config.js</code> and replace with your actual values:</p>
+            <div class="code-block">
+const firebaseConfig = {
+  apiKey: "AIza...", // Your actual API key
+  authDomain: "fir-app-6aa3b.firebaseapp.com",
+  databaseURL: "https://fir-app-6aa3b-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "fir-app-6aa3b",
+  storageBucket: "fir-app-6aa3b.appspot.com",
+  messagingSenderId: "123...", // Your actual sender ID
+  appId: "1:123..." // Your actual app ID
+};
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>Step 5: Update Database Rules (Security)</h3>
+            <p>Go to <strong>Realtime Database</strong> → <strong>Rules</strong> and update:</p>
+            <div class="code-block">
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null"
+  }
+}
+            </div>
+            <p>Click <strong>Publish</strong></p>
+        </div>
+
+        <h2>✅ Test Your Setup</h2>
+        
+        <div class="step">
+            <h3>Testing Email/Password</h3>
+            <ol>
+                <li>Open <code>index.html</code> in your browser</li>
+                <li>Click "Sign up" link</li>
+                <li>Create a test account</li>
+                <li>You should be redirected to dashboard</li>
+                <li>Try logging out and logging in again</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>Testing Google Sign-In</h3>
+            <ol>
+                <li>On login page, click "Sign in with Google"</li>
+                <li>Select your Google account</li>
+                <li>You should be redirected to dashboard</li>
+            </ol>
+        </div>
+
+        <h2>🎉 What You Get</h2>
+        <ul>
+            <li><span class="success">✓</span> Secure user authentication</li>
+            <li><span class="success">✓</span> Email/Password login</li>
+            <li><span class="success">✓</span> Google Sign-In</li>
+            <li><span class="success">✓</span> Protected dashboard (login required)</li>
+            <li><span class="success">✓</span> Automatic session management</li>
+            <li><span class="success">✓</span> Secure logout functionality</li>
+        </ul>
+
+        <h2>🐛 Common Issues</h2>
+        
+        <div class="step">
+            <strong>Problem:</strong> "Firebase is not defined"<br>
+            <strong>Solution:</strong> Make sure Firebase SDK scripts load before your app scripts
+        </div>
+
+        <div class="step">
+            <strong>Problem:</strong> Google Sign-In popup blocked<br>
+            <strong>Solution:</strong> Allow popups in your browser for localhost/your domain
+        </div>
+
+        <div class="step">
+            <strong>Problem:</strong> "Operation not allowed"<br>
+            <strong>Solution:</strong> Enable the auth method in Firebase Console
+        </div>
+
+        <div class="important">
+            <strong>📖 Need More Help?</strong><br>
+            Check the detailed guide: <code>FIREBASE_AUTH_SETUP.md</code>
+        </div>
+
+        <hr style="margin: 40px 0;">
+        <p style="text-align: center; color: #999;">
+            <small>Built with Firebase Authentication & Realtime Database</small>
+        </p>
+    </div>
+</body>
+</html>
